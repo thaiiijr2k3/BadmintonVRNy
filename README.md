@@ -1,1 +1,1 @@
-# BadmintonVRNy
+# Badminton_VR
