@@ -6,7 +6,7 @@ public class BallHandler : MonoBehaviour
 {
     public int _playerScore;
     public int _botScore;
-    public bool _start;
+    public bool _playing;
     public GameObject _playerScoreText;
     public GameObject _botScoreText;
     public TextMesh _playerScoreMeshComponent;
@@ -23,10 +23,10 @@ public class BallHandler : MonoBehaviour
     void Start()
     {
         _botMovingToBall = false;
-        //_ballToBotSide = false;
+        _ballToBotSide = true;
         _playerScore = 0;
         _botScore = 0;
-        _start = false;
+        _playing = false;
         _playerScoreText = GameObject.Find("PlayerScore");
         _playerScoreMeshComponent = _playerScoreText.GetComponent<TextMesh>();
         _botScoreText = GameObject.Find("BotScore");
@@ -41,11 +41,11 @@ public class BallHandler : MonoBehaviour
     private void OnTriggerEnter(Collider other)
     {
         //Debug.Log(other.name);
-        if (other.name == "ExampleAvatar")
-            _start = true;
+        if (other.name == "ExampleAvatar")   //The game starts if player take up the ball
+            _playing = true;
 
 
-        else if (other.name == "Wall")
+        else if (other.name == "Wall")  //A wall is over the net. If the ball passes this wall, bot will start follow to the ball.
         {
             if(_ballToBotSide == true)
                 _botMovingToBall = true;
@@ -57,8 +57,8 @@ public class BallHandler : MonoBehaviour
 
     private void newRound()
     {
-        //Spawn ball
-        rb.isKinematic = false;
+        //Spawn ball         
+        rb.isKinematic = false;  // not useing Kinematic so the ball can not rotate or move.
         _ball.transform.position = _ball_spawn_pos;
         _ball.transform.rotation = Quaternion.identity;
         rb.isKinematic = true;
@@ -74,7 +74,7 @@ public class BallHandler : MonoBehaviour
             _time += Time.deltaTime;
         }
 
-        if(_time >= 2f)
+        if(_time >= 2f) // Delay 2 secs before the ball spawn.
         {
             newRound();
             _startTimeCounter = false;
@@ -84,32 +84,64 @@ public class BallHandler : MonoBehaviour
 
     private void ResetAfterScored()
     {
-        _start = false;
+        _playing = false;
+        _ballToBotSide = true;
         _startTimeCounter = true;
         _time = 0;
+    }
+
+    private void PlayerHitTheBall(Collision other)
+    {
+        if(other.gameObject.name == "PlayersScoredArea")
+        {
+            _playerScore += 1;
+            ResetAfterScored();
+        }
+
+        else if (other.gameObject.name != "PlayersScoredArea" && other.gameObject.name != "StickyTable" && other.gameObject.name != "Racket")
+        {
+            _botScore += 1;
+            ResetAfterScored();
+        }
+    }
+
+    private void BotHitTheBall(Collision other)
+    {
+        if(other.gameObject.name =="BotScoredArea")
+        {
+            _botScore += 1;
+            ResetAfterScored();
+            Debug.Log(other.gameObject.name);
+        }
+
+
+        else if (other.gameObject.name != "BotScoredArea")
+        {
+            _playerScore += 1;
+            Debug.Log(other.gameObject.name);
+            ResetAfterScored();
+        }
     }
 
     private void OnCollisionEnter(Collision other)
     {
 
-        if (_start == true)
+        if (_playing == true)
         {
-
-            if (other.gameObject.name == "ScoredArea")
-            {
-                _playerScore += 1;
-                ResetAfterScored();
-            }
-
-            else if (other.gameObject.name != "ScoredArea" && other.gameObject.name != "StickyTable" && other.gameObject.name != "Racket")
-            {
-                _botScore += 1;
-                ResetAfterScored();
-            }
-            else if (other.gameObject.name == "Racket")
+            if (other.gameObject.name == "Racket")
             {
                 _ballToBotSide = true;
             }
+
+            if (_ballToBotSide == true)
+            {
+                PlayerHitTheBall(other);
+            }
+            else
+            {
+                BotHitTheBall(other);
+            }
+
         }
   
        
@@ -133,7 +165,7 @@ public class BallHandler : MonoBehaviour
 
     void Update()
     {
-        UpdateScore();
+        UpdateScore(); 
         SpawnBallDelay();
 
 
